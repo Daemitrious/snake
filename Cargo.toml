@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 
-keyboard_query = "0.1.0"
+device_query = "0.2.8"
 rand = "0.8.3"
