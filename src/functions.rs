@@ -63,7 +63,7 @@ pub fn refresh(area: &Area) {
     for v in area.iter() {
         bag.push(v.into_iter().map(|c| c.to_string() + " ").collect())
     }
-    println!("\x1B[2J\x1B[1;1H{}", bag.join("\n"))
+    println!("{e}[2J{e}[1;1H{}", bag.join("\n"), e = 27 as char);
 }
 
 //  Initialize keyboard input then begin game loop
