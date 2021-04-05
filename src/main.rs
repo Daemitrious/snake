@@ -33,10 +33,45 @@ struct Player {
 
 //  Implement self-mutable and informational functions
 impl Game {
+    //  Returns the `char` value of the item at the specified coordinates
     fn at(&self, (pos_x, pos_y): Coordinates) -> char {
         self.area[pos_y][pos_x]
     }
+    //  Returns the size of the `Game.Area`
+    fn size(&self) -> Dimensions {
+        (self.max_x, self.max_y)
+    }
+    //  Modifies a specified location to `EMPTY`
+    fn to_empty(&mut self, (pos_x, pos_y): Coordinates) {
+        self.area[pos_y][pos_x] = EMPTY
+    }
+    //  Modifies a specified location to `PLAYER`
+    fn to_player(&mut self, (pos_x, pos_y): Coordinates) {
+        self.area[pos_y][pos_x] = PLAYER
+    }
+    //  Modifies a specified location to `FOOD`
+    fn to_food(&mut self, (pos_x, pos_y): Coordinates) {
+        self.area[pos_y][pos_x] = FOOD
+    }
+    //  Modifies a random `EMPTY` location to a `FOOD`
+    fn new_food(&mut self) {
+        let mut available: Body = Vec::new();
 
+        for r in 1..self.max_y {
+            for c in 1..self.max_x {
+                let v: char = self.area[r][c];
+
+                if v != PLAYER && v != FOOD {
+                    available.push((c, r));
+                }
+            }
+        }
+        let len = available.len();
+
+        if len > 0 {
+            self.to_food(available[if len > 1 { randint(0..len - 1) } else { 0 }])
+        }
+    }
     //  Checks if the player can move
     fn can_move(&self, &(pos_x, pos_y): &Coordinates) -> bool {
         for v in [
@@ -66,49 +101,12 @@ impl Game {
         true
     }
 
-    //  Modifies a specified location to `EMPTY`
-    fn to_empty(&mut self, (pos_x, pos_y): Coordinates) {
-        self.area[pos_y][pos_x] = EMPTY
-    }
-    //  Modifies a specified location to `PLAYER`
-    fn to_player(&mut self, (pos_x, pos_y): Coordinates) {
-        self.area[pos_y][pos_x] = PLAYER
-    }
-    //  Modifies a specified location to `FOOD`
-    fn to_food(&mut self, (pos_x, pos_y): Coordinates) {
-        self.area[pos_y][pos_x] = FOOD
-    }
-
-    //  Modifies a random `EMPTY` location to a `FOOD`
-    fn new_food(&mut self) {
-        let mut available: Body = Vec::new();
-
-        for r in 1..self.max_y {
-            for c in 1..self.max_x {
-                let v: char = self.area[r][c];
-
-                if v != PLAYER && v != FOOD {
-                    available.push((c, r));
-                }
-            }
-        }
-        let len = available.len();
-
-        if len > 0 {
-            self.to_food(available[if len > 1 { randint(0..len - 1) } else { 0 }])
-        }
-    }
-
     //  Places each coordinate from `player.body` as a `PLAYER`
     fn update(&mut self, body: &Body) {
         for (pos_x, pos_y) in body.iter() {
             self.area[*pos_y][*pos_x] = PLAYER;
         }
         refresh(&self.area)
-    }
-    //  Returns the size of the `Game.Area`
-    fn size(&self) -> Dimensions {
-        (self.max_x, self.max_y)
     }
 }
 
@@ -204,7 +202,7 @@ fn new_player((max_x, max_y): Dimensions) -> Player {
 
 // Clear the terminal then print `array` in grid format
 fn refresh(area: &Area) {
-    //  Clear the terminal
+    //  Clear the terminal // Might change
     print!("\x1B[2J\x1B[1;1H");
 
     for row in area.iter() {
@@ -224,11 +222,10 @@ fn run(game: &mut Game) {
     let input = DeviceState::new();
     let mut prev_keys = Vec::with_capacity(1);
 
-    //////////////////////////////////////
+    // `area` setup // Might change
     game.to_player(player.xy());
     game.new_food();
     game.update(&player.body);
-    //////////////////////////////////////
 
     //  Begin loop
     let ending = loop {
