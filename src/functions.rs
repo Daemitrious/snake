@@ -1,8 +1,8 @@
 use crate::{
     game::Game,
     packages::{
-        Area, Coordinates, DeviceQuery, DeviceState, Dimensions, End, Keycode, Lose, Rng, Win, A,
-        BORDER, D, FOOD, KEYS, PLAYER, S, W,
+        Area, Coordinates, DeviceQuery, DeviceState, Dimensions, End, Keycode, Lose, Rng, Term,
+        Win, A, BORDER, D, FOOD, KEYS, PLAYER, S, W,
     },
     player::Player,
 };
@@ -56,6 +56,11 @@ pub fn randint(range: std::ops::Range<usize>) -> usize {
     rand::thread_rng().gen_range(range)
 }
 
+fn overprint(content: String, tsize: usize) {
+    drop(Term::stdout().clear_last_lines(tsize));
+    println!("{}", content);
+}
+
 // Clear the terminal then print `array` in grid format
 pub fn refresh(area: &Area) {
     let mut bag: Vec<String> = Vec::with_capacity(area.len());
@@ -63,7 +68,7 @@ pub fn refresh(area: &Area) {
     for v in area.iter() {
         bag.push(v.into_iter().map(|c| c.to_string() + " ").collect())
     }
-    println!("{e}[2J{e}[1;1H{}", bag.join("\n"), e = 27 as char);
+    overprint(bag.join("\n"), area.len())
 }
 
 //  Initialize keyboard input then begin game loop

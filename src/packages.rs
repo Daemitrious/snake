@@ -1,10 +1,11 @@
 pub use {
+    console::Term,
     device_query::{
         DeviceQuery, DeviceState, Keycode,
         Keycode::{A, D, S, W},
     },
     rand::Rng,
-    End::{Lose, Win},
+    End::*,
 };
 
 pub enum End {
