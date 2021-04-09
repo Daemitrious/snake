@@ -96,7 +96,6 @@ pub fn run(columns: usize, rows: usize) -> End {
     //  Begin loop
     loop {
         _held_key = input.get_keys();
-        //println!("{}", _held_key[0]);
 
         if _held_key.len() > 0 && _held_key != prev_key {
             key = &_held_key[0];
