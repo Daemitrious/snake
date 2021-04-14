@@ -1,6 +1,8 @@
 use crate::packages::{Body, Coordinates};
 
 pub struct Player {
+    pub max_x: usize,
+    pub max_y: usize,
     pub pos_x: usize,
     pub pos_y: usize,
     pub body: Body,
@@ -27,6 +29,23 @@ impl Player {
     //  Translate player right
     pub fn right(&mut self) {
         self.pos_x += 1
+    }
+
+    //  Check if the player can translate upwards
+    pub fn can_up(&self, new_y: usize) -> bool {
+        new_y > 0 && !self.body.contains(&(self.pos_x, new_y))
+    }
+    //  Check if the player can translate leftwards
+    pub fn can_left(&self, new_x: usize) -> bool {
+        new_x > 0 && !self.body.contains(&(new_x, self.pos_y))
+    }
+    //  Check if the player can translate downwards
+    pub fn can_down(&self, new_y: usize) -> bool {
+        new_y < self.max_y && !self.body.contains(&(self.pos_x, new_y))
+    }
+    //  Check if the player can translate rightwards
+    pub fn can_right(&self, new_x: usize) -> bool {
+        new_x < self.max_x && !self.body.contains(&(new_x, self.pos_y))
     }
 
     //  Append the last previous body coordinates

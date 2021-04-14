@@ -2,7 +2,7 @@ use crate::{
     game::Game,
     packages::{
         Area, Coordinates, DeviceQuery, DeviceState, Dimensions, End, Keycode, Lose, Rng, Term,
-        Win, A, BORDER, D, FOOD, KEYS, PLAYER, S, W,
+        Win, A, BORDER, D, EMPTY, FOOD, KEYS, S, W,
     },
     player::Player,
 };
@@ -16,7 +16,7 @@ pub fn new_game(columns: usize, rows: usize) -> Game {
     let max_y = rows - 1;
 
     let mut area: Area = (0..rows)
-        .map(|_| (0..columns).map(|_| ' ').collect())
+        .map(|_| (0..columns).map(|_| EMPTY).collect())
         .collect();
 
     for r in 0..rows {
@@ -45,6 +45,8 @@ pub fn new_player((max_x, max_y): Dimensions) -> Player {
     let pos_y = randint(1..max_y);
 
     Player {
+        max_x: max_x,
+        max_y: max_y,
         pos_x: pos_x,
         pos_y: pos_y,
         body: vec![(pos_x, pos_y)],
@@ -56,6 +58,7 @@ pub fn randint(range: std::ops::Range<usize>) -> usize {
     rand::thread_rng().gen_range(range)
 }
 
+//  Clear the terminal while overwriting a new `stdout`
 fn overprint(content: String, tsize: usize) {
     drop(Term::stdout().clear_last_lines(tsize));
     println!("{}", content);
@@ -97,44 +100,38 @@ pub fn run(columns: usize, rows: usize) -> End {
     loop {
         _held_key = input.get_keys();
 
-        if _held_key.len() > 0 && _held_key != prev_key {
+        //  Check for any keyboard events
+        if !_held_key.is_empty() && _held_key != prev_key {
             key = &_held_key[0];
 
+            //  Check if event is for movement
             if KEYS.contains(key) {
                 prev = player.body[player.body.len() - 1];
 
                 match key {
                     W => {
-                        if player.pos_y - 1 > 0
-                            && game.at((player.pos_x, player.pos_y - 1)) != PLAYER
-                        {
+                        if player.can_up(player.pos_y - 1) {
                             player.up()
                         } else {
                             continue;
                         }
                     }
                     A => {
-                        if player.pos_x - 1 > 0
-                            && game.at((player.pos_x - 1, player.pos_y)) != PLAYER
-                        {
+                        if player.can_left(player.pos_x - 1) {
                             player.left()
                         } else {
                             continue;
                         }
                     }
                     S => {
-                        if player.pos_y + 1 < game.max_y
-                            && game.at((player.pos_x, player.pos_y + 1)) != PLAYER
-                        {
+                        if player.can_down(player.pos_y + 1) {
                             player.down()
                         } else {
                             continue;
                         }
                     }
                     D => {
-                        if player.pos_x + 1 < game.max_x
-                            && game.at((player.pos_x + 1, player.pos_y)) != PLAYER
-                        {
+                        if player.can_right(player.pos_x + 1) {
                             player.right()
                         } else {
                             continue;
@@ -144,6 +141,7 @@ pub fn run(columns: usize, rows: usize) -> End {
                 };
                 player.update();
 
+                //  Check if player ate food
                 if game.at(player.xy()) == FOOD {
                     player.grow(prev);
                     game.new_food();
@@ -152,6 +150,7 @@ pub fn run(columns: usize, rows: usize) -> End {
                 }
                 game.update(&player.body);
 
+                //  Check if player can't move
                 if !game.can_move(&player.xy()) {
                     break if game.over() { Win } else { Lose };
                 }
