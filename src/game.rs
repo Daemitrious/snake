@@ -37,18 +37,21 @@ impl Game {
 
         for r in 1..self.max_y {
             for c in 1..self.max_x {
-                let v: char = self.area[r][c];
-
-                if v != PLAYER && v != FOOD {
-                    available.push((c, r));
-                }
+                (|head| {
+                    (|v: char| {
+                        if v != PLAYER && v != FOOD {
+                            available.push(head);
+                        }
+                    })(self.at(head))
+                })((c, r))
             }
         }
-        let len = available.len();
 
-        if len > 0 {
-            self.to_food(available[if len > 1 { randint(0..len - 1) } else { 0 }])
-        }
+        (|len| {
+            if len > 0 {
+                self.to_food(available[if len > 1 { randint(0..len - 1) } else { 0 }])
+            }
+        })(available.len());
     }
     //  Checks if the player can move
     pub fn can_move(&self, &(pos_x, pos_y): &Coordinates) -> bool {
@@ -68,7 +71,7 @@ impl Game {
     }
 
     //  Checks if every `at` of `area` is a PLAYER signifying the end of the game
-    pub fn over(&self) -> bool {
+    pub fn is_over(&self) -> bool {
         for r in 1..self.max_y {
             for c in 1..self.max_x {
                 if self.area[r][c] != PLAYER {

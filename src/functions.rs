@@ -81,18 +81,22 @@ pub fn run(columns: usize, rows: usize) -> End {
 
     //  Assign player from `PLAYER` struct
     let mut player: Player = new_player(game.size());
+
+    //  Initiate previous coordinate variable for player
     let mut prev: Coordinates;
 
     //  Keyboard inputs
     let input = DeviceState::new();
 
+    //  Initiate keyboard event vectors
     let mut _held_key: Vec<Keycode> = Vec::with_capacity(1);
     let mut prev_key: Vec<Keycode> = Vec::with_capacity(1);
 
+    //  Initiate current key variable
     let mut key: &Keycode;
 
-    // `area` setup // Might change
-    game.to_player(player.xy());
+    //  Setup game
+    game.to_player(player.head());
     game.new_food();
     game.update(&player.body);
 
@@ -106,7 +110,7 @@ pub fn run(columns: usize, rows: usize) -> End {
 
             //  Check if event is for movement
             if KEYS.contains(key) {
-                prev = player.body[player.body.len() - 1];
+                prev = player.tail();
 
                 match key {
                     W => {
@@ -142,7 +146,7 @@ pub fn run(columns: usize, rows: usize) -> End {
                 player.update();
 
                 //  Check if player ate food
-                if game.at(player.xy()) == FOOD {
+                if game.at(player.head()) == FOOD {
                     player.grow(prev);
                     game.new_food();
                 } else {
@@ -151,8 +155,8 @@ pub fn run(columns: usize, rows: usize) -> End {
                 game.update(&player.body);
 
                 //  Check if player can't move
-                if !game.can_move(&player.xy()) {
-                    break if game.over() { Win } else { Lose };
+                if !game.can_move(&player.head()) {
+                    break if game.is_over() { Win } else { Lose };
                 }
             } else {
                 continue;

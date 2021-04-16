@@ -12,7 +12,7 @@ use crate::{
 fn main() {
     println!(
         "\nYou {}!",
-        match run(10, 10) {
+        match run(5, 5) {
             Win => "Win",
             Lose => "Lose",
         }

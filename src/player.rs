@@ -11,8 +11,11 @@ pub struct Player {
 //  Implement movement and other features to `Player`
 impl Player {
     //  Returns the coordinates of the head of the player
-    pub fn xy(&self) -> Coordinates {
+    pub fn head(&self) -> Coordinates {
         (self.pos_x, self.pos_y)
+    }
+    pub fn tail(&self) -> Coordinates {
+        (|b: &Body| b[b.len() - 1])(&self.body)
     }
     //  Translate player up
     pub fn up(&mut self) {
@@ -58,10 +61,10 @@ impl Player {
         let len = self.body.len();
 
         if len > 1 {
-            self.body.insert(0, self.xy());
+            self.body.insert(0, self.head());
             self.body.remove(len);
         } else {
-            self.body[0] = self.xy()
+            self.body[0] = self.head()
         }
     }
 }
