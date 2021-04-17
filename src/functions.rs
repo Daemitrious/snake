@@ -1,8 +1,8 @@
 use crate::{
     game::Game,
     packages::{
-        Area, Coordinates, DeviceQuery, DeviceState, Dimensions, End, Keycode, Lose, Rng, Term,
-        Win, A, BORDER, D, EMPTY, FOOD, KEYS, S, W,
+        sleep, Area, Coordinates, DeviceQuery, DeviceState, Dimensions, End, Keycode, Lose, Rng,
+        Term, Win, A, BORDER, D, EMPTY, FOOD, KEYS, S, W, WAIT,
     },
     player::Player,
 };
@@ -161,6 +161,8 @@ pub fn run(columns: usize, rows: usize) -> End {
             } else {
                 continue;
             }
+        } else {
+            sleep(WAIT);
         }
         prev_key = _held_key;
     }
