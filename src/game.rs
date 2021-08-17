@@ -1,6 +1,6 @@
 use crate::{
     functions::{randint, refresh},
-    packages::{Area, Body, Coordinates, Dimensions, EMPTY, FOOD, MOVEABLE, PLAYER},
+    packages::{Area, Body, Coordinates, Dimensions, BODY, EMPTY, FOOD, HEAD, MOVEABLE},
 };
 
 pub struct Game {
@@ -19,9 +19,9 @@ impl Game {
     pub fn to_empty(&mut self, (pos_x, pos_y): Coordinates) {
         self.area[pos_y][pos_x] = EMPTY
     }
-    //  Modifies a specified location to `PLAYER`
+    //  Modifies a specified location to `BODY`
     pub fn to_player(&mut self, (pos_x, pos_y): Coordinates) {
-        self.area[pos_y][pos_x] = PLAYER
+        self.area[pos_y][pos_x] = BODY
     }
     //  Returns the `char` value of the item at the specified coordinates
     pub fn at(&self, (pos_x, pos_y): Coordinates) -> char {
@@ -39,7 +39,7 @@ impl Game {
             for c in 1..self.max_x {
                 (|head| {
                     (|v: char| {
-                        if v != PLAYER && v != FOOD {
+                        if v != BODY && v != FOOD && v != HEAD {
                             available.push(head);
                         }
                     })(self.at(head))
@@ -70,11 +70,11 @@ impl Game {
         false
     }
 
-    //  Checks if every `at` of `area` is a PLAYER signifying the end of the game
+    //  Checks if every `at` of `area` is a BODY signifying the end of the game
     pub fn is_over(&self) -> bool {
         for r in 1..self.max_y {
             for c in 1..self.max_x {
-                if self.area[r][c] != PLAYER {
+                if self.area[r][c] != BODY && self.area[r][c] != HEAD {
                     return false;
                 }
             }
@@ -82,10 +82,13 @@ impl Game {
         true
     }
 
-    //  Places each coordinate from `player.body` as a `PLAYER`
+    //  Places each coordinate from `player.body` as a `BODY`
     pub fn update(&mut self, body: &Body) {
-        for (pos_x, pos_y) in body.into_iter() {
-            self.area[*pos_y][*pos_x] = PLAYER;
+        let (pos_x, pos_y) = body[0];
+        self.area[pos_y][pos_x] = HEAD;
+
+        for (pos_x, pos_y) in body[1..].into_iter() {
+            self.area[*pos_y][*pos_x] = BODY;
         }
         refresh(&self.area)
     }

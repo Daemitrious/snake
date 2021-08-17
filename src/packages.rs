@@ -25,6 +25,7 @@ pub const MOVEABLE: [char; 2] = [EMPTY, FOOD];
 pub const KEYS: [Keycode; 4] = [W, A, S, D];
 
 pub const BORDER: char = 'X';
-pub const PLAYER: char = 'o';
 pub const EMPTY: char = ' ';
 pub const FOOD: char = '+';
+pub const BODY: char = 'o';
+pub const HEAD: char = '*';
