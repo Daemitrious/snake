@@ -1,8 +1,8 @@
 use crate::{
     game::Game,
     packages::{
-        sleep, Area, Coordinates, DeviceQuery, DeviceState, Dimensions, End, Keycode, Lose, Rng,
-        Term, Win, A, BORDER, D, EMPTY, FOOD, KEYS, S, W, WAIT,
+        sleep, Area, Coordinates, DeviceQuery, DeviceState, Dimensions, Keycode, Rng, Term, A,
+        BORDER, D, EMPTY, FOOD, KEYS, S, W, WAIT,
     },
     player::Player,
 };
@@ -32,11 +32,7 @@ pub fn new_game(columns: usize, rows: usize) -> Game {
             }
         }
     }
-    Game {
-        max_x: max_x,
-        max_y: max_y,
-        area: area,
-    }
+    Game { max_x, max_y, area }
 }
 
 //  Create a new `Player` struct with a set of random coordinates
@@ -45,10 +41,10 @@ pub fn new_player((max_x, max_y): Dimensions) -> Player {
     let pos_y = randint(1..max_y);
 
     Player {
-        max_x: max_x,
-        max_y: max_y,
-        pos_x: pos_x,
-        pos_y: pos_y,
+        max_x,
+        max_y,
+        pos_x,
+        pos_y,
         body: vec![(pos_x, pos_y)],
     }
 }
@@ -58,12 +54,6 @@ pub fn randint(range: std::ops::Range<usize>) -> usize {
     rand::thread_rng().gen_range(range)
 }
 
-//  Clear the terminal while overwriting a new `stdout`
-fn overprint(content: String, tsize: usize) {
-    drop(Term::stdout().clear_last_lines(tsize));
-    println!("{}", content);
-}
-
 // Clear the terminal then print `array` in grid format
 pub fn refresh(area: &Area) {
     let mut bag: Vec<String> = Vec::with_capacity(area.len());
@@ -71,11 +61,15 @@ pub fn refresh(area: &Area) {
     for v in area.iter() {
         bag.push(v.into_iter().map(|c| c.to_string() + " ").collect())
     }
-    overprint(bag.join("\n"), area.len())
+    Term::stdout().clear_last_lines(area.len()).unwrap();
+    println!("{}", bag.join("\n"));
 }
 
 //  Initialize keyboard input then begin game loop
-pub fn run(columns: usize, rows: usize) -> End {
+pub fn run(columns: usize, rows: usize) -> bool {
+    //  Clear screen buffer before-hand
+    Term::stdout().clear_screen().unwrap();
+
     //  Initialize game board
     let mut game = new_game(columns, rows);
 
@@ -156,7 +150,7 @@ pub fn run(columns: usize, rows: usize) -> End {
 
                 //  Check if player can't move
                 if !game.can_move(&player.head()) {
-                    break if game.is_over() { Win } else { Lose };
+                    break if game.is_over() { true } else { false };
                 }
             } else {
                 continue;
