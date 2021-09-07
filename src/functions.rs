@@ -66,7 +66,9 @@ pub fn refresh(area: &Area) {
 }
 
 //  Initialize keyboard input then begin game loop
-pub fn run(columns: usize, rows: usize) -> bool {
+pub fn run() -> bool {
+    let (rows, columns) = (randint(5..15), randint(5..15));
+
     //  Clear screen buffer before-hand
     Term::stdout().clear_screen().unwrap();
 
@@ -82,82 +84,106 @@ pub fn run(columns: usize, rows: usize) -> bool {
     //  Keyboard inputs
     let input = DeviceState::new();
 
-    //  Initiate keyboard event vectors
+    //  Initiate keyboard event arrays
     let mut _held_key: Vec<Keycode> = Vec::with_capacity(1);
     let mut prev_key: Vec<Keycode> = Vec::with_capacity(1);
 
     //  Initiate current key variable
-    let mut key: &Keycode;
+    let mut key: Keycode;
 
     //  Setup game
     game.to_player(player.head());
     game.new_food();
     game.update(&player.body);
 
+    let mut direction = if player.max_x > player.max_y {
+        if player.pos_x < player.max_x / 2 {
+            D
+        } else {
+            A
+        }
+    } else {
+        if player.pos_y < player.max_y / 2 {
+            S
+        } else {
+            W
+        }
+    };
+
     //  Begin loop
     loop {
-        _held_key = input.get_keys();
+        for _ in 0..10 {
+            _held_key = input.get_keys();
 
-        //  Check for any keyboard events
-        if !_held_key.is_empty() && _held_key != prev_key {
-            key = &_held_key[0];
+            //  Check for any keyboard events
+            if !_held_key.is_empty() && _held_key != prev_key {
+                key = _held_key[0].clone();
 
-            //  Check if event is for movement
-            if KEYS.contains(key) {
-                prev = player.tail();
-
-                match key {
-                    W => {
-                        if player.can_up(player.pos_y - 1) {
-                            player.up()
-                        } else {
-                            continue;
-                        }
+                //  Check if event is for movement
+                if KEYS.contains(&key) {
+                    if !(direction == W && key == S
+                        || direction == S && key == W
+                        || direction == A && key == D
+                        || direction == D && key == A)
+                        || player.body.len() == 1
+                    {
+                        direction = key
                     }
-                    A => {
-                        if player.can_left(player.pos_x - 1) {
-                            player.left()
-                        } else {
-                            continue;
-                        }
-                    }
-                    S => {
-                        if player.can_down(player.pos_y + 1) {
-                            player.down()
-                        } else {
-                            continue;
-                        }
-                    }
-                    D => {
-                        if player.can_right(player.pos_x + 1) {
-                            player.right()
-                        } else {
-                            continue;
-                        }
-                    }
-                    _ => unreachable!(),
-                };
-                player.update();
-
-                //  Check if player ate food
-                if game.at(player.head()) == FOOD {
-                    player.grow(prev);
-                    game.new_food();
                 } else {
-                    game.to_empty(prev);
-                }
-                game.update(&player.body);
-
-                //  Check if player can't move
-                if !game.can_move(&player.head()) {
-                    break if game.is_over() { true } else { false };
+                    continue;
                 }
             } else {
-                continue;
+                sleep(WAIT);
             }
-        } else {
-            sleep(WAIT);
+            prev_key = _held_key;
         }
-        prev_key = _held_key;
+        prev = player.tail();
+
+        match direction {
+            W => {
+                if player.can_up(player.pos_y - 1) {
+                    player.up()
+                } else {
+                    break false;
+                }
+            }
+            A => {
+                if player.can_left(player.pos_x - 1) {
+                    player.left()
+                } else {
+                    break false;
+                }
+            }
+            S => {
+                if player.can_down(player.pos_y + 1) {
+                    player.down()
+                } else {
+                    break false;
+                }
+            }
+            D => {
+                if player.can_right(player.pos_x + 1) {
+                    player.right()
+                } else {
+                    break false;
+                }
+            }
+            _ => unreachable!(),
+        };
+        player.update();
+
+        //  Check if player ate food
+        if game.at(player.head()) == FOOD {
+            player.grow(prev);
+            game.new_food();
+        } else {
+            game.to_empty(prev);
+        }
+        game.update(&player.body);
+
+        //  Check if player can't move
+        if !game.can_move(&player.head()) {
+            break if game.is_over() { true } else { false };
+        }
     }
 }

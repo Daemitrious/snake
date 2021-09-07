@@ -9,7 +9,7 @@ use crate::functions::run;
 fn main() {
     println!(
         "\nYou {}!",
-        match run(5, 5) {
+        match run() {
             true => "Win",
             false => "Lose",
         }
