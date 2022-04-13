@@ -1,95 +1,118 @@
-use crate::{
-    functions::{randint, refresh},
-    packages::{Area, Body, Coordinates, Dimensions, BODY, EMPTY, FOOD, HEAD, MOVEABLE},
+use {
+    crate::{area::Area, lock, player::Player, Lock, Object},
+    rand::{prelude::IteratorRandom, thread_rng},
+    std::{
+        collections::{hash_map::DefaultHasher, HashMap},
+        hash::{Hash, Hasher},
+        io::{Error, Write},
+        net::TcpStream,
+        time::Duration,
+    },
 };
 
+#[derive(Default)]
+#[non_exhaustive]
 pub struct Game {
-    pub max_x: usize,
-    pub max_y: usize,
-    pub area: Area,
+    pub players: HashMap<u64, Lock<Player>>,
+    pub streams: HashMap<u64, Lock<TcpStream>>,
+    area: Area,
+    len: usize,
 }
 
-//  Implement self-mutable and informational functions
 impl Game {
-    //  Modifies a specified location to `FOOD`
-    fn to_food(&mut self, (pos_x, pos_y): Coordinates) {
-        self.area[pos_y][pos_x] = FOOD
-    }
-    //  Modifies a specified location to `EMPTY`
-    pub fn to_empty(&mut self, (pos_x, pos_y): Coordinates) {
-        self.area[pos_y][pos_x] = EMPTY
-    }
-    //  Modifies a specified location to `BODY`
-    pub fn to_player(&mut self, (pos_x, pos_y): Coordinates) {
-        self.area[pos_y][pos_x] = BODY
-    }
-    //  Returns the `char` value of the item at the specified coordinates
-    pub fn at(&self, (pos_x, pos_y): Coordinates) -> char {
-        self.area[pos_y][pos_x]
-    }
-    //  Returns the size of the `Game.Area`
-    pub fn size(&self) -> Dimensions {
-        (self.max_x, self.max_y)
-    }
-    //  Modifies a random `EMPTY` location to a `FOOD`
-    pub fn new_food(&mut self) {
-        let mut available: Body = Vec::new();
+    pub const TIMER: Duration = Duration::from_millis(250);
 
-        for r in 1..self.max_y {
-            for c in 1..self.max_x {
-                (|head| {
-                    (|v: char| {
-                        if v != BODY && v != FOOD && v != HEAD {
-                            available.push(head);
+    pub fn get_player(&self, id: u64) -> Option<&Lock<Player>> {
+        self.players.get(&id)
+    }
+
+    pub fn get_stream(&self, id: u64) -> Option<&Lock<TcpStream>> {
+        self.streams.get(&id)
+    }
+
+    pub fn update(&mut self) {
+        for player in self.players.values() {
+            if let Ok(guard_player) = player.read() {
+                if self.area.can_move(&guard_player) {
+                    let index = self.area.next_move(&guard_player);
+                    drop(guard_player);
+
+                    if let Ok(mut guard_player) = player.write() {
+                        if self.area.data()[index] == Object::Food as u8 {
+                            guard_player.grow(index);
+                            self.area.set(index, Object::Player)
+                        } else {
+                            self.area.set(guard_player.tail(), Object::Space);
+                            guard_player.translate(index);
+                            self.area.set(index, Object::Player)
                         }
-                    })(self.at(head))
-                })((c, r))
-            }
-        }
-
-        (|len| {
-            if len > 0 {
-                self.to_food(available[if len > 1 { randint(0..len - 1) } else { 0 }])
-            }
-        })(available.len());
-    }
-    //  Checks if the player can move
-    pub fn can_move(&self, &(pos_x, pos_y): &Coordinates) -> bool {
-        for v in [
-            (pos_x, pos_y - 1),
-            (pos_x - 1, pos_y),
-            (pos_x, pos_y + 1),
-            (pos_x + 1, pos_y),
-        ]
-        .iter()
-        {
-            if MOVEABLE.contains(&self.at(*v)) {
-                return true;
-            }
-        }
-        false
-    }
-
-    //  Checks if every `at` of `area` is a BODY signifying the end of the game
-    pub fn is_over(&self) -> bool {
-        for r in 1..self.max_y {
-            for c in 1..self.max_x {
-                if self.area[r][c] != BODY && self.area[r][c] != HEAD {
-                    return false;
+                    }
                 }
             }
         }
-        true
     }
 
-    //  Places each coordinate from `player.body` as a `BODY`
-    pub fn update(&mut self, body: &Body) {
-        let (pos_x, pos_y) = body[0];
-        self.area[pos_y][pos_x] = HEAD;
+    pub fn distribute(&mut self) -> Result<(), Error> {
+        println!("\nDistributing");
+        for stream in self.streams.values() {
+            if let Ok(mut guard_stream) = stream.write() {
+                println!("{:?}", guard_stream);
 
-        for (pos_x, pos_y) in body[1..].into_iter() {
-            self.area[*pos_y][*pos_x] = BODY;
+                guard_stream.write_all(&self.area.info())?;
+                guard_stream.flush()?
+            }
         }
-        refresh(&self.area)
+        println!("Done\n");
+        Ok(())
+    }
+
+    pub const fn area(&self) -> &Area {
+        &self.area
+    }
+
+    pub fn spawn_food(&mut self) {
+        if let Some(index) = (0..self.area.data().len())
+            .filter(|i| self.area[*i] == Object::Space as u8)
+            .choose(&mut thread_rng())
+        {
+            self.area.set(index, Object::Food);
+        }
+    }
+
+    pub fn setup_client(
+        &mut self,
+        p: usize,
+        mut stream: TcpStream,
+    ) -> Result<(u64, Lock<TcpStream>), Error> {
+        stream.write_all(&self.area.info())?;
+        stream.flush()?;
+
+        self.len += 1;
+
+        let mut hasher = DefaultHasher::new();
+        self.len.hash(&mut hasher);
+        let id = hasher.finish();
+
+        // stream.set_nonblocking(true)?;
+        // stream.set_read_timeout(Some(Duration::from_millis(100)))?;
+
+        let stream = lock(stream);
+
+        self.players.insert(id, lock(Player::new(p)));
+        self.streams.insert(id, stream.clone());
+
+        Ok((id, stream))
+    }
+
+    pub fn remove_client(&mut self, id: u64) {
+        if let Some(player) = self.players.remove(&id) {
+            self.streams.remove(&id);
+
+            if let Ok(guard_player) = player.read() {
+                for index in guard_player.data.iter() {
+                    self.area.set(*index, Object::Space)
+                }
+            }
+        }
     }
 }

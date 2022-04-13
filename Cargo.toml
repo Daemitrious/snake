@@ -1,13 +1,13 @@
 [package]
 name = "snake"
 version = "0.1.0"
-authors = ["daemitrious"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[lib]
+name = "snake"
+path = "src/lib.rs"
 
-console = "0.14.1"
-device_query = "0.2.8"
-rand = "0.8.3"
+[dependencies]
+rand = { version = "0.8.4", default-features = false, features = ["std", "std_rng"] }
